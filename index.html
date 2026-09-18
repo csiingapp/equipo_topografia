@@ -74,7 +74,8 @@ footer{margin-top:34px;color:var(--muted);font-size:.78rem;border-top:1px solid 
  <div id="userbar" class="userbar" hidden>Entraste como <b id="who"></b><button class="btn ghost tiny" onclick="logout()">No soy yo / Salir</button></div>
 </header>
 
-<section id="picker" class="login">
+<div id="loading" class="login"><div class="card"><h2>Conectando…</h2><p>Sincronizando con Firebase.</p></div></div>
+<section id="picker" class="login" hidden>
  <div class="card">
   <h2>Elegí tu nombre</h2>
   <p>Tocá tu nombre para entrar. La primera vez creás tu PIN de 4 dígitos.</p>
@@ -171,90 +172,151 @@ footer{margin-top:34px;color:var(--muted);font-size:.78rem;border-top:1px solid 
  </div>
 </div>
 
-<script>
-const USERS = ["Agustín Cortondo", "Agustín Méndez", "Agustina Acosta", "Álvaro Izquierdo", "Ana Paula Sáez", "Antonella Lobera", "Antonio Martyniuk", "Aracely Gaona", "Camila Fortunato", "Catalina Peláez", "Cecilia Volpe", "Emilia Varela", "Emiliano Gómez", "Enzo Piovano", "Estefanía Martínez", "Federico Barrios", "Fernando Díaz", "Florencia Fros", "Francisco Calvo", "Franco Piñeyrúa", "Ismael Villanueva", "José Pedro Vidal", "Juan Marote", "Julieta Rohner", "Lucas Padilla Segui", "Marcelo Rivero", "Marco Pérez", "María Frachia", "María Mesa", "Mariano Artegoytia", "Martín Sanguinetti", "Matías Bardesio", "Matías Castro", "Matías Gutiérrez", "Mauro Bruzzone", "Maximiliano Rojas Mirazón", "Micaela Perdomo", "Paula Bonjour", "Pilar Betancurt", "Pilar Luján", "Ramiro Alonso", "Rocío Rojas Romero", "Santiago Noboa", "Silvio Martino", "Valentín González", "Valentina Kautz", "Valentina Oliva", "Valentina Varela"];
-const EQ = [{"id": "GPS-01", "type": "GPS", "name": "Trimble R780", "detail": "Base + móvil + TDC600 + accesorios", "img": "https://images.ctfassets.net/1nvkn1423yot/4B0haF62yjuPnW01iq5ijp/02f9207cf2f09f5095ed92d7f08d2431/geo-product-r780-2le-pim-image-800x960.png?fm=webp&q=85", "icon": "📡"}, {"id": "GPS-02", "type": "GPS", "name": "Trimble R780", "detail": "Base + móvil + TDC600 + accesorios", "img": "https://images.ctfassets.net/1nvkn1423yot/4B0haF62yjuPnW01iq5ijp/02f9207cf2f09f5095ed92d7f08d2431/geo-product-r780-2le-pim-image-800x960.png?fm=webp&q=85", "icon": "📡"}, {"id": "DRON-01", "type": "Drone", "name": "DJI Matrice 400", "detail": "", "img": "https://www.dronesdirect.co.uk/Images/CP.EN.00000685.01_2_LargeThumbnail.png?height=360&v=15&width=360", "icon": "✈️"}, {"id": "DRON-02", "type": "Drone", "name": "DJI Matrice 350 RTK", "detail": "Payload P1", "badge": "P1", "img": "https://www.dronesdirect.co.uk/Images/BUNCP.EN.00000468.0192851_1_LargeThumbnail.png?height=360&v=1&width=360", "icon": "✈️"}, {"id": "DRON-03", "type": "Drone", "name": "DJI Matrice 350 RTK", "detail": "Payload L2", "badge": "L2", "img": "https://www.dronesdirect.co.uk/Images/BUNCP.EN.00000468.0192851_1_LargeThumbnail.png?height=360&v=1&width=360", "icon": "✈️"}, {"id": "DRON-04", "type": "Drone", "name": "DJI Mavic 3 Enterprise", "detail": "RC", "img": "https://www.dronesdirect.co.uk/Images/CP.EN.00000411.01_1_LargeThumbnail.jpg?height=360&width=360", "icon": "✈️"}, {"id": "EST-01", "type": "Estación Total", "name": "Leica TS16", "detail": "", "img": "https://cdn11.bigcommerce.com/s-ew2v2d3jn1/images/stencil/1280x1280/products/793/4513/1659454761.1280.1280__84568.1724344361.jpg?c=1", "icon": "📐"}, {"id": "ESC-01", "type": "Escáner", "name": "Leica RTC360", "detail": "", "img": "https://survey-tech.co.uk/cdn/shop/products/leica-rtc360-3d-laser-scanner-03_1024x1024%402x.jpg?v=1651153057", "icon": "◉"}, {"id": "ROB-01", "type": "Robot", "name": "HP SitePrint", "detail": "", "img": "https://spatialtechnologies.ca/cdn/shop/products/hp-siteprint-construction-layout-robot_1024x1024.jpg", "icon": "🤖"}, {"id": "ECO-01", "type": "Ecosonda", "name": "Ecosonda", "detail": "", "img": "", "icon": "〰️"}].map((e,i)=>({...e,status:i===6?"Retirado":"En depósito",holder:i===6?"Carlos Almirón":"",since:i===6?"17/09/2026 08:05":""}));
-let HISTORY=[{move:"17/09/2026 08:05",record:"17/09/2026 08:05",eq:"EST-01",type:"Retiro",user:"Carlos Almirón",obs:""}];
-let RESERVATIONS=[
- {eq:"ESC-01",date:"19/09/2026",dateISO:"2026-09-19",shift:"AM",shiftLabel:"Mañana · 08:00–12:00",user:"Martín Sanguinetti",obs:"Relevamiento de prueba"}
-];
-let state={user:"",pendingUser:"",action:"",selected:new Set()};
+<script type="module">
+const firebaseConfig = {
+  apiKey: "AIzaSyDWbemG9dR86WFcfKl3Jkt6KVoqNTCRw6w",
+  authDomain: "equipos-topografia.firebaseapp.com",
+  projectId: "equipos-topografia",
+  storageBucket: "equipos-topografia.firebasestorage.app",
+  messagingSenderId: "784264967657",
+  appId: "1:784264967657:web:30d29e825253f729148778"
+};
+
+const PERSONAS = [{"nombre": "Agustín Cortondo", "email": "acortondo@csi-ing.com"}, {"nombre": "Agustín Méndez", "email": "amendezo@csi-ing.com"}, {"nombre": "Agustina Acosta", "email": "agacosta@csi-ing.com"}, {"nombre": "Álvaro Izquierdo", "email": "aizquierdo@csi-ing.com"}, {"nombre": "Ana Paula Sáez", "email": "asaez@csi-ing.com"}, {"nombre": "Antonella Lobera", "email": "alobera@csi-ing.com"}, {"nombre": "Antonio Martyniuk", "email": "amartyniuk@csi-ing.com"}, {"nombre": "Aracely Gaona", "email": "agaonar@csi-ing.com"}, {"nombre": "Camila Fortunato", "email": "cfortunato@csi-ing.com"}, {"nombre": "Catalina Peláez", "email": "cpelaez@csi-ing.com"}, {"nombre": "Cecilia Volpe", "email": "cvolpe@csi-ing.com"}, {"nombre": "Emilia Varela", "email": "emvarela@csi-ing.com"}, {"nombre": "Emiliano Gómez", "email": "egomez@csi-ing.com"}, {"nombre": "Enzo Piovano", "email": "epiovano@csi-ing.com"}, {"nombre": "Estefanía Martínez", "email": "esmartinez@csi-ing.com"}, {"nombre": "Federico Barrios", "email": "fbarrios@csi-ing.com"}, {"nombre": "Fernando Díaz", "email": "fdiaz@csi-ing.com"}, {"nombre": "Florencia Fros", "email": "ffros@csi-ing.com"}, {"nombre": "Francisco Calvo", "email": "fcalvo@csi-ing.com"}, {"nombre": "Franco Piñeyrúa", "email": "fpineyrua@csi-ing.com"}, {"nombre": "Ismael Villanueva", "email": "ivillanueva@csi-ing.com"}, {"nombre": "José Pedro Vidal", "email": "jpvidal@csi-ing.com"}, {"nombre": "Juan Marote", "email": "jmarote@csi-ing.com"}, {"nombre": "Julieta Rohner", "email": "jrohner@csi-ing.com"}, {"nombre": "Lucas Padilla Segui", "email": "lpadilla@csi-ing.com"}, {"nombre": "Marcelo Rivero", "email": "mrivero@csi-ing.com"}, {"nombre": "Marco Pérez", "email": "mperezr@csi-ing.com"}, {"nombre": "María Frachia", "email": "mfrachia@csi-ing.com"}, {"nombre": "María Mesa", "email": "mmesa@csi-ing.com"}, {"nombre": "Mariano Artegoytia", "email": "martegoytia@csi-ing.com"}, {"nombre": "Martín Sanguinetti", "email": "msanguinetti@csi-ing.com"}, {"nombre": "Matías Bardesio", "email": "mbardesio@csi-ing.com"}, {"nombre": "Matías Castro", "email": "mcastro@csi-ing.com"}, {"nombre": "Matías Gutiérrez", "email": "mgutierrez@csi-ing.com"}, {"nombre": "Mauro Bruzzone", "email": "mbruzzone@csi-ing.com"}, {"nombre": "Maximiliano Rojas Mirazón", "email": "mrojasm@csi-ing.com"}, {"nombre": "Micaela Perdomo", "email": "mperdomo@csi-ing.com"}, {"nombre": "Paula Bonjour", "email": "pbonjour@csi-ing.com"}, {"nombre": "Pilar Betancurt", "email": "pbetancurt@csi-ing.com"}, {"nombre": "Pilar Luján", "email": "plujan@csi-ing.com"}, {"nombre": "Ramiro Alonso", "email": "ralonso@csi-ing.com"}, {"nombre": "Rocío Rojas Romero", "email": "rrojasr@csi-ing.com"}, {"nombre": "Santiago Noboa", "email": "snoboa@csi-ing.com"}, {"nombre": "Silvio Martino", "email": "smartino@csi-ing.com"}, {"nombre": "Valentín González", "email": "vgonzalezn@csi-ing.com"}, {"nombre": "Valentina Kautz", "email": "vkautz@csi-ing.com"}, {"nombre": "Valentina Oliva", "email": "voliva@csi-ing.com"}, {"nombre": "Valentina Varela", "email": "vvarela@csi-ing.com"}];
+const ADMINS = ["rrojasr@csi-ing.com"];
+const EQ_BASE = [{"id": "GPS-01", "type": "GPS", "name": "Trimble R780", "detail": "Base + móvil + TDC600 + accesorios", "img": "https://images.ctfassets.net/1nvkn1423yot/4B0haF62yjuPnW01iq5ijp/02f9207cf2f09f5095ed92d7f08d2431/geo-product-r780-2le-pim-image-800x960.png?fm=webp&q=85", "icon": "📡"}, {"id": "GPS-02", "type": "GPS", "name": "Trimble R780", "detail": "Base + móvil + TDC600 + accesorios", "img": "https://images.ctfassets.net/1nvkn1423yot/4B0haF62yjuPnW01iq5ijp/02f9207cf2f09f5095ed92d7f08d2431/geo-product-r780-2le-pim-image-800x960.png?fm=webp&q=85", "icon": "📡"}, {"id": "DRON-01", "type": "Drone", "name": "DJI Matrice 400", "detail": "", "img": "https://www.dronesdirect.co.uk/Images/CP.EN.00000685.01_2_LargeThumbnail.png?height=360&v=15&width=360", "icon": "✈️"}, {"id": "DRON-02", "type": "Drone", "name": "DJI Matrice 350 RTK", "detail": "Payload P1", "badge": "P1", "img": "https://www.dronesdirect.co.uk/Images/BUNCP.EN.00000468.0192851_1_LargeThumbnail.png?height=360&v=1&width=360", "icon": "✈️"}, {"id": "DRON-03", "type": "Drone", "name": "DJI Matrice 350 RTK", "detail": "Payload L2", "badge": "L2", "img": "https://www.dronesdirect.co.uk/Images/BUNCP.EN.00000468.0192851_1_LargeThumbnail.png?height=360&v=1&width=360", "icon": "✈️"}, {"id": "DRON-04", "type": "Drone", "name": "DJI Mavic 3 Enterprise", "detail": "RC", "img": "https://www.dronesdirect.co.uk/Images/CP.EN.00000411.01_1_LargeThumbnail.jpg?height=360&width=360", "icon": "✈️"}, {"id": "EST-01", "type": "Estación Total", "name": "Leica TS16", "detail": "", "img": "https://cdn11.bigcommerce.com/s-ew2v2d3jn1/images/stencil/1280x1280/products/793/4513/1659454761.1280.1280__84568.1724344361.jpg?c=1", "icon": "📐"}, {"id": "ESC-01", "type": "Escáner", "name": "Leica RTC360", "detail": "", "img": "https://survey-tech.co.uk/cdn/shop/products/leica-rtc360-3d-laser-scanner-03_1024x1024%402x.jpg?v=1651153057", "icon": "◉"}, {"id": "ROB-01", "type": "Robot", "name": "HP SitePrint", "detail": "", "img": "https://spatialtechnologies.ca/cdn/shop/products/hp-siteprint-construction-layout-robot_1024x1024.jpg", "icon": "🤖"}, {"id": "ECO-01", "type": "Ecosonda", "name": "Ecosonda", "detail": "", "img": "", "icon": "〰️"}];
+let EQ = EQ_BASE.map(e=>({...e,status:"En depósito",holder:"",since:""}));
+let HISTORY = [];
+let RESERVATIONS = [];
+let state = {user:null,pendingUser:null,action:"",selected:new Set(),ready:false};
+
+const appMod = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+const authMod = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+const fs = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+
+const fbApp = appMod.initializeApp(firebaseConfig);
+const AUTH = authMod.getAuth(fbApp);
+const DB = fs.getFirestore(fbApp);
+
+const {
+  collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy,
+  runTransaction, serverTimestamp
+} = fs;
 
 const initials=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
-function renderUsers(f=""){ const q=f.toLowerCase().trim(); const list=USERS.filter(n=>!q||n.toLowerCase().includes(q)); plist.innerHTML=list.map(n=>`<button class="pbtn" onclick='pickUser(${JSON.stringify(n)})'><span class="av">${initials(n)}</span><span class="nm">${n}</span></button>`).join("")}
-function pickUser(n){state.pendingUser=n; const key="csi:eq:pin:"+n; const exists=localStorage.getItem(key); pinTitle.textContent="Hola, "+n.split(" ")[0]; pinText.textContent=exists?"Ingresá tu PIN de 4 dígitos para entrar.":"Creá tu PIN de 4 dígitos. Te lo vamos a pedir la próxima vez."; pin2.hidden=!!exists; pin1.value="";pin2.value="";pinMsg.textContent="";pinmodal.hidden=false;setTimeout(()=>pin1.focus(),50)}
-function closePin(){pinmodal.hidden=true}
-function submitPin(){ const p=pin1.value.trim(); if(!/^\d{4}$/.test(p)){pinMsg.textContent="El PIN son 4 números.";return} const k="csi:eq:pin:"+state.pendingUser; const old=localStorage.getItem(k); if(old&&old!==p){pinMsg.textContent="PIN incorrecto.";return} if(!old){if(pin2.value.trim()!==p){pinMsg.textContent="Los dos PIN no coinciden.";return}localStorage.setItem(k,p)} state.user=state.pendingUser;localStorage.setItem("csi:eq:user",state.user);closePin();enterApp()}
-function enterApp(){picker.hidden=true;app.hidden=false;userbar.hidden=false;who.textContent=state.user;newMove();renderAdmin()}
-function logout(){localStorage.removeItem("csi:eq:user");state.user="";app.hidden=true;userbar.hidden=true;picker.hidden=false;renderUsers("")}
-function choose(a){
- state.action=a;state.selected=new Set();actionCard.hidden=true;successCard.hidden=true;moveCard.hidden=false;
- moveTitle.textContent=a==="Reserva"?"Reservar equipos":a==="Retiro"?"Retirar equipos":"Devolver equipos";
- const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());const now=d.toISOString().slice(0,16);
- singleDateWrap.hidden=a==="Reserva";reserveDateWrap.hidden=a!=="Reserva";
- if(a==="Reserva"){
-   const today=now.slice(0,10);
-   reserveDate.value=today;
-   reserveShift.value="AM";
- }else{
-   dateLbl.textContent=a==="Retiro"?"Fecha y hora":"Fecha de devolución";
-   dateField.value=now;dateField.disabled=a==="Retiro";
-   dateHelp.textContent=a==="Retiro"?"Se registra automáticamente.":"Podés colocar una fecha anterior si la devolución se registró después.";
- }
- renderEq()
-}
-function imgMarkup(e){ if(!e.img) return `<span class="fallback">${e.icon}</span>`; return `<img src="${e.img}" alt="${e.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fallback" style="display:none">${e.icon}</span>`}
+const personByName=n=>PERSONAS.find(p=>p.nombre===n);
+const personByEmail=e=>PERSONAS.find(p=>p.email===e);
+const isAdmin=()=>state.user && ADMINS.includes(state.user.email);
 
-function shiftsConflict(a,b){
-  if(a==="FULL" || b==="FULL") return true;
-  return a===b;
+function renderUsers(f=""){
+  const q=f.toLowerCase().trim();
+  const list=PERSONAS.filter(p=>!q||p.nombre.toLowerCase().includes(q)||p.email.toLowerCase().includes(q));
+  plist.innerHTML=list.map(p=>`<button class="pbtn" data-email="${p.email}"><span class="av">${initials(p.nombre)}</span><span><span class="nm">${p.nombre}</span><span style="display:block;font-size:.76rem;color:var(--muted)">${p.email}</span></span></button>`).join("");
+  plist.querySelectorAll(".pbtn").forEach(b=>b.addEventListener("click",()=>pickUser(b.dataset.email)));
 }
+
+async function hashPin(email,pin){
+  const raw="csi-equipos-2026::"+email.toLowerCase()+"::"+pin;
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+async function pickUser(email){
+  const persona=personByEmail(email); if(!persona) return;
+  state.pendingUser=persona;
+  pinMsg.textContent=""; pin1.value=""; pin2.value="";
+  let snap;
+  try{ snap=await getDoc(doc(DB,"usuarios",email)); }
+  catch(e){ console.error(e); alert("No se pudo verificar el usuario. Revisá la conexión."); return; }
+  const exists=snap.exists();
+  pinTitle.textContent="Hola, "+persona.nombre.split(" ")[0];
+  pinText.textContent=exists?"Ingresá tu PIN de 4 dígitos para entrar.":"Creá tu PIN de 4 dígitos. Te lo vamos a pedir la próxima vez.";
+  pin2.hidden=exists;
+  pinmodal.hidden=false;
+  setTimeout(()=>pin1.focus(),50);
+}
+
+window.closePin=()=>{pinmodal.hidden=true};
+
+window.submitPin=async()=>{
+  const p=pin1.value.trim();
+  if(!/^\d{4}$/.test(p)){pinMsg.textContent="El PIN son 4 números.";return}
+  const persona=state.pendingUser; if(!persona) return;
+  const ref=doc(DB,"usuarios",persona.email);
+  const snap=await getDoc(ref);
+  const hash=await hashPin(persona.email,p);
+  if(!snap.exists()){
+    if(pin2.value.trim()!==p){pinMsg.textContent="Los dos PIN no coinciden.";return}
+    await setDoc(ref,{nombre:persona.nombre,email:persona.email,pinHash:hash,creado:Date.now()});
+  } else if((snap.data()||{}).pinHash!==hash){
+    pinMsg.textContent="PIN incorrecto.";pin1.value="";pin1.focus();return;
+  }
+  state.user=persona;
+  localStorage.setItem("csi:eq:userEmail",persona.email);
+  pinmodal.hidden=true;
+  enterApp();
+};
+
+function enterApp(){
+  loading.hidden=true; picker.hidden=true; app.hidden=false; userbar.hidden=false;
+  who.textContent=state.user.nombre;
+  adTab.hidden=!isAdmin();
+  newMove();
+  renderAdmin();
+}
+
+window.logout=()=>{
+  localStorage.removeItem("csi:eq:userEmail");
+  state.user=null; app.hidden=true; userbar.hidden=true; adTab.hidden=true; picker.hidden=false; renderUsers("");
+};
+
+window.choose=(a)=>{
+  state.action=a;state.selected=new Set();actionCard.hidden=true;successCard.hidden=true;moveCard.hidden=false;
+  moveTitle.textContent=a==="Reserva"?"Reservar equipos":a==="Retiro"?"Retirar equipos":"Devolver equipos";
+  const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());const now=d.toISOString().slice(0,16);
+  singleDateWrap.hidden=a==="Reserva";reserveDateWrap.hidden=a!=="Reserva";
+  if(a==="Reserva"){
+    reserveDate.value=now.slice(0,10); reserveShift.value="AM";
+  }else{
+    dateLbl.textContent=a==="Retiro"?"Fecha y hora":"Fecha de devolución";
+    dateField.value=now;dateField.disabled=a==="Retiro";
+    dateHelp.textContent=a==="Retiro"?"Se registra automáticamente.":"Podés colocar una fecha anterior si la devolución se registró después.";
+  }
+  renderEq();
+};
+
+function imgMarkup(e){
+  if(!e.img) return `<span class="fallback">${e.icon}</span>`;
+  return `<img src="${e.img}" alt="${e.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fallback" style="display:none">${e.icon}</span>`;
+}
+
+function shiftsConflict(a,b){ if(a==="FULL"||b==="FULL") return true; return a===b; }
 
 function conflictingReservations(eqId){
-  if(state.action!=="Reserva" || !reserveDate.value || !reserveShift.value) return [];
-  return RESERVATIONS.filter(r =>
-    r.eq===eqId &&
-    r.dateISO===reserveDate.value &&
-    shiftsConflict(r.shift,reserveShift.value)
-  );
+  if(state.action!=="Reserva"||!reserveDate.value||!reserveShift.value) return [];
+  return RESERVATIONS.filter(r=>r.eq===eqId&&r.dateISO===reserveDate.value&&shiftsConflict(r.shift,reserveShift.value));
 }
 
 function nextReservation(eqId){
-  return RESERVATIONS
-    .filter(r=>r.eq===eqId)
-    .slice()
-    .sort((a,b)=>a.dateISO.localeCompare(b.dateISO))[0];
+  const today=new Date().toISOString().slice(0,10);
+  return RESERVATIONS.filter(r=>r.eq===eqId&&r.dateISO>=today).slice().sort((a,b)=>a.dateISO.localeCompare(b.dateISO))[0];
 }
 
 function renderEq(){
   if(state.action==="Reserva"){
-    [...state.selected].forEach(id=>{
-      if(conflictingReservations(id).length) state.selected.delete(id);
-    });
+    [...state.selected].forEach(id=>{if(conflictingReservations(id).length) state.selected.delete(id);});
   }
-
   eqgrid.innerHTML=EQ.map(e=>{
-    const next=nextReservation(e.id);
-    const conflicts=conflictingReservations(e.id);
-    const unavailable=conflicts.length>0;
-    const conflict=conflicts[0];
-
-    return `<div class="eq ${state.selected.has(e.id)?"sel":""} ${unavailable?"unavailable":""}"
-                 onclick="toggleEq('${e.id}')">
+    const next=nextReservation(e.id), conflicts=conflictingReservations(e.id), unavailable=conflicts.length>0, c=conflicts[0];
+    return `<div class="eq ${state.selected.has(e.id)?"sel":""} ${unavailable?"unavailable":""}" data-id="${e.id}">
       ${e.badge?`<span class="badge">${e.badge}</span>`:""}
       <div class="thumb">${imgMarkup(e)}</div>
-      <div>
-        <div class="eqcode">${e.id}</div>
-        <div class="eqname">${e.name}</div>
-        ${e.detail?`<div class="eqdetail">${e.detail}</div>`:""}
-        <span class="status ${e.status==="En depósito"?"in":"out"}">${e.status}</span>
-        ${unavailable
-          ? `<div class="reserved-note">No disponible · ${conflict.date}<br>${conflict.shiftLabel}<br>${conflict.user}</div>`
-          : (next ? `<div class="eqdetail" style="margin-top:6px">📅 Próx.: ${next.date} · ${next.shiftLabel} · ${next.user}</div>`:"")}
-      </div>
-    </div>`
+      <div><div class="eqcode">${e.id}</div><div class="eqname">${e.name}</div>${e.detail?`<div class="eqdetail">${e.detail}</div>`:""}
+      <span class="status ${e.status==="En depósito"?"in":"out"}">${e.status}</span>
+      ${unavailable?`<div class="reserved-note">No disponible · ${c.date}<br>${c.shiftLabel}<br>${c.user}</div>`:(next?`<div class="eqdetail" style="margin-top:6px">📅 Próx.: ${next.date} · ${next.shiftLabel} · ${next.user}</div>`:"")}
+      </div></div>`;
   }).join("");
-
+  eqgrid.querySelectorAll(".eq").forEach(el=>el.addEventListener("click",()=>toggleEq(el.dataset.id)));
   updateConflict();
 }
 
@@ -262,116 +324,187 @@ function toggleEq(id){
   if(state.action==="Reserva"){
     const conflicts=conflictingReservations(id);
     if(conflicts.length){
-      const r=conflicts[0];
-      conflict.hidden=false;
+      const r=conflicts[0]; conflict.hidden=false;
       conflict.innerHTML=`<b>${id} no está disponible.</b> Ya está reservado por ${r.user} el ${r.date} · ${r.shiftLabel}.`;
       return;
     }
   }
-  state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
-  renderEq();
+  state.selected.has(id)?state.selected.delete(id):state.selected.add(id);renderEq();
 }
 
 function updateConflict(){
-  const bad=EQ.filter(e=>state.selected.has(e.id)&&state.action==="Retiro"&&e.status==="Retirado"&&e.holder!==state.user);
-
+  const bad=EQ.filter(e=>state.selected.has(e.id)&&state.action==="Retiro"&&e.status==="Retirado"&&e.holder!==state.user?.nombre);
   if(bad.length){
     conflict.hidden=false;
     conflict.innerHTML=`<b>Atención:</b> ${bad.map(e=>`${e.id} figura retirado por ${e.holder}`).join(", ")}. Si confirmás, se registrará una devolución inferida antes del nuevo retiro.`;
     return;
   }
-
-  if(state.action==="Reserva"){
-    const selectedConflicts=[...state.selected].flatMap(id=>conflictingReservations(id));
-    if(selectedConflicts.length){
-      conflict.hidden=false;
-      conflict.innerHTML=`<b>Reserva no disponible:</b> ${selectedConflicts.map(r=>`${r.eq} ya está reservado por ${r.user} el ${r.date} · ${r.shiftLabel}`).join("<br>")}.`;
-      return;
-    }
-  }
-
-  conflict.hidden=true;
-  conflict.innerHTML="";
+  conflict.hidden=true; conflict.innerHTML="";
 }
 
-function fmtDay(v){
-  if(!v) return "";
-  const [y,m,d]=v.split("-");
-  return `${d}/${m}/${y}`;
-}
-
-function fmt(v){const d=new Date(v);return isNaN(d)?v:d.toLocaleString("es-UY",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+function fmtDay(v){if(!v)return"";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
+function fmtDateTimeLocal(v){const d=new Date(v);return isNaN(d)?v:d.toLocaleString("es-UY",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
 function nowTxt(){return new Date().toLocaleString("es-UY",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
-function confirmMove(){
- if(!state.selected.size){alert("Seleccioná al menos un equipo.");return}
- const ob=obs.value.trim();
- if(state.action==="Reserva"){
-   if(!reserveDate.value || !reserveShift.value){alert("Indicá la fecha y el turno.");return}
-   const collisions=RESERVATIONS.filter(r=>
-     state.selected.has(r.eq) &&
-     r.dateISO===reserveDate.value &&
-     shiftsConflict(r.shift,reserveShift.value)
-   );
-   if(collisions.length){
-     state.selected = new Set([...state.selected].filter(id=>!collisions.some(r=>r.eq===id)));
-     renderEq();
-     const r=collisions[0];
-     alert(`${r.eq} ya está reservado por ${r.user} el ${r.date} · ${r.shiftLabel}.`);
-     return;
-   }
 
-   const shiftLabels={
-     AM:"Mañana · 08:00–12:00",
-     PM:"Tarde · 13:00–17:00",
-     FULL:"Jornada completa"
-   };
+async function createReservation(){
+  const ids=[...state.selected], shift=reserveShift.value, dateISO=reserveDate.value, ob=obs.value.trim();
+  const labels={AM:"Mañana · 08:00–12:00",PM:"Tarde · 13:00–17:00",FULL:"Jornada completa"};
+  const slots=shift==="FULL"?["AM","PM"]:[shift];
 
-   [...state.selected].forEach(id=>RESERVATIONS.push({
-      eq:id,
-      date:fmtDay(reserveDate.value),
-      dateISO:reserveDate.value,
-      shift:reserveShift.value,
-      shiftLabel:shiftLabels[reserveShift.value],
-      user:state.user,
-      obs:ob
-   }));
-
-   moveCard.hidden=true;successCard.hidden=false;
-   successText.textContent=`Reserva registrada para ${[...state.selected].join(", ")} · ${fmtDay(reserveDate.value)} · ${shiftLabels[reserveShift.value]}.`;
- }else{
-   const mv=fmt(dateField.value),rec=nowTxt();
-   [...state.selected].forEach(id=>{
-     const e=EQ.find(x=>x.id===id);
-     if(state.action==="Retiro"&&e.status==="Retirado"&&e.holder!==state.user){
-       HISTORY.unshift({move:rec,record:rec,eq:id,type:"Devolución inferida",user:e.holder,obs:"Devolución inferida por nuevo retiro. Estado no informado."})
-     }
-     HISTORY.unshift({move:mv,record:rec,eq:id,type:state.action,user:state.user,obs:ob});
-     if(state.action==="Retiro"){
-       e.status="Retirado";e.holder=state.user;e.since=mv;
-     }else{e.status="En depósito";e.holder="";e.since=""}
-   });
-   moveCard.hidden=true;successCard.hidden=false;successText.textContent=`${state.action} registrado para ${[...state.selected].join(", ")}.`;
- }
- obs.value="";renderAdmin()
+  await runTransaction(DB,async tx=>{
+    const checks=[];
+    ids.forEach(eq=>slots.forEach(s=>checks.push({eq,s,ref:doc(DB,"reservationSlots",`${eq}__${dateISO}__${s}`)})));
+    for(const x of checks){
+      const snap=await tx.get(x.ref);
+      if(snap.exists()){
+        const d=snap.data()||{};
+        throw new Error(`CONFLICT|${x.eq}|${d.user||"otro usuario"}|${d.shiftLabel||s}`);
+      }
+    }
+    ids.forEach(eq=>{
+      const masterRef=doc(collection(DB,"reservations"));
+      const base={eq,dateISO,date:fmtDay(dateISO),shift,shiftLabel:labels[shift],user:state.user.nombre,userEmail:state.user.email,obs:ob,createdAt:Date.now()};
+      tx.set(masterRef,base);
+      slots.forEach(s=>tx.set(doc(DB,"reservationSlots",`${eq}__${dateISO}__${s}`),{...base,masterId:masterRef.id,slot:s}));
+    });
+  });
 }
-function cancelMove(){moveCard.hidden=true;actionCard.hidden=false}
-function newMove(){moveCard.hidden=true;successCard.hidden=true;actionCard.hidden=false;showView("operator")}
-function showView(v){const admin=v==="admin";adminView.hidden=!admin;actionCard.hidden=admin?true:false;moveCard.hidden=true;successCard.hidden=true;opTab.classList.toggle("on",!admin);adTab.classList.toggle("on",admin);if(admin)renderAdmin()}
+
+async function createMovement(){
+  const ids=[...state.selected], action=state.action, ob=obs.value.trim();
+  const moveISO=dateField.value, moveDisplay=fmtDateTimeLocal(moveISO), rec=nowTxt();
+
+  await runTransaction(DB,async tx=>{
+    const refs=ids.map(id=>({id,ref:doc(DB,"equipment",id)}));
+    const snaps=[];
+    for(const x of refs) snaps.push({...x,snap:await tx.get(x.ref)});
+    for(const x of snaps){
+      const current=x.snap.exists()?x.snap.data():{status:"En depósito",holder:"",since:""};
+      if(action==="Retiro"&&current.status==="Retirado"&&current.holder&&current.holder!==state.user.nombre){
+        const inferRef=doc(collection(DB,"movements"));
+        tx.set(inferRef,{eq:x.id,type:"Devolución inferida",user:current.holder,userEmail:"",move:rec,moveISO:new Date().toISOString(),record:rec,recordAt:Date.now(),obs:"Devolución inferida por nuevo retiro. Estado no informado."});
+      }
+      const mref=doc(collection(DB,"movements"));
+      tx.set(mref,{eq:x.id,type:action,user:state.user.nombre,userEmail:state.user.email,move:moveDisplay,moveISO,record:rec,recordAt:Date.now(),obs:ob});
+      if(action==="Retiro"){
+        tx.set(x.ref,{status:"Retirado",holder:state.user.nombre,holderEmail:state.user.email,since:moveDisplay,sinceISO:moveISO},{merge:true});
+      }else{
+        tx.set(x.ref,{status:"En depósito",holder:"",holderEmail:"",since:"",sinceISO:""},{merge:true});
+      }
+    }
+  });
+}
+
+window.confirmMove=async()=>{
+  if(!state.selected.size){alert("Seleccioná al menos un equipo.");return}
+  try{
+    if(state.action==="Reserva"){
+      if(!reserveDate.value||!reserveShift.value){alert("Indicá la fecha y el turno.");return}
+      await createReservation();
+      const labels={AM:"Mañana · 08:00–12:00",PM:"Tarde · 13:00–17:00",FULL:"Jornada completa"};
+      moveCard.hidden=true;successCard.hidden=false;
+      successText.textContent=`Reserva registrada para ${[...state.selected].join(", ")} · ${fmtDay(reserveDate.value)} · ${labels[reserveShift.value]}.`;
+    }else{
+      await createMovement();
+      moveCard.hidden=true;successCard.hidden=false;
+      successText.textContent=`${state.action} registrado para ${[...state.selected].join(", ")}.`;
+    }
+    obs.value="";
+  }catch(e){
+    console.error(e);
+    if((e.message||"").startsWith("CONFLICT|")){
+      const [,eq,user]=e.message.split("|");
+      alert(`${eq} ya tiene una reserva para ese turno, registrada por ${user}.`);
+      renderEq();
+    }else alert("No se pudo guardar. Revisá la conexión y volvé a intentar.");
+  }
+};
+
+window.cancelMove=()=>{moveCard.hidden=true;actionCard.hidden=false};
+window.newMove=()=>{moveCard.hidden=true;successCard.hidden=true;actionCard.hidden=false;showView("operator")};
+
+window.showView=(v)=>{
+  const admin=v==="admin";
+  if(admin&&!isAdmin()) return;
+  adminView.hidden=!admin;actionCard.hidden=admin;moveCard.hidden=true;successCard.hidden=true;
+  opTab.classList.toggle("on",!admin);adTab.classList.toggle("on",admin);if(admin)renderAdmin();
+};
+
 function renderAdmin(){
- kt.textContent=EQ.length;ki.textContent=EQ.filter(e=>e.status==="En depósito").length;ko.textContent=EQ.filter(e=>e.status==="Retirado").length;
- statusBody.innerHTML=EQ.map(e=>`<tr><td><b>${e.id}</b></td><td>${e.name}${e.detail?" · "+e.detail:""}</td><td><span class="status ${e.status==="En depósito"?"in":"out"}">${e.status}</span></td><td>${e.holder||"—"}</td><td>${e.since||"—"}</td></tr>`).join("");
- const upcoming=RESERVATIONS.slice().sort((a,b)=>a.dateISO.localeCompare(b.dateISO));
- resBody.innerHTML=upcoming.map(r=>`<tr><td><b>${r.eq}</b></td><td>${r.date}</td><td>${r.shiftLabel}</td><td>${r.user}</td><td>${r.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="5" style="color:var(--muted)">No hay próximas reservas.</td></tr>';
- filterEq.innerHTML='<option value="">Todos los equipos</option>'+EQ.map(e=>`<option>${e.id}</option>`).join("");
- filterUser.innerHTML='<option value="">Todos los usuarios</option>'+USERS.map(u=>`<option>${u}</option>`).join("");
- renderHistory()
+  kt.textContent=EQ.length;ki.textContent=EQ.filter(e=>e.status==="En depósito").length;ko.textContent=EQ.filter(e=>e.status==="Retirado").length;
+  statusBody.innerHTML=EQ.map(e=>`<tr><td><b>${e.id}</b></td><td>${e.name}${e.detail?" · "+e.detail:""}</td><td><span class="status ${e.status==="En depósito"?"in":"out"}">${e.status}</span></td><td>${e.holder||"—"}</td><td>${e.since||"—"}</td></tr>`).join("");
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=RESERVATIONS.filter(r=>r.dateISO>=today).slice().sort((a,b)=>a.dateISO.localeCompare(b.dateISO));
+  resBody.innerHTML=upcoming.map(r=>`<tr><td><b>${r.eq}</b></td><td>${r.date}</td><td>${r.shiftLabel}</td><td>${r.user}</td><td>${r.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="5" style="color:var(--muted)">No hay próximas reservas.</td></tr>';
+  filterEq.innerHTML='<option value="">Todos los equipos</option>'+EQ.map(e=>`<option>${e.id}</option>`).join("");
+  filterUser.innerHTML='<option value="">Todos los usuarios</option>'+PERSONAS.map(p=>`<option>${p.nombre}</option>`).join("");
+  renderHistory();
 }
-function renderHistory(){const e=filterEq.value,u=filterUser.value,t=filterType.value;const rows=HISTORY.filter(h=>(!e||h.eq===e)&&(!u||h.user===u)&&(!t||h.type===t));histBody.innerHTML=rows.map(h=>`<tr><td>${h.move}</td><td>${h.record}</td><td><b>${h.eq}</b></td><td>${h.type}</td><td>${h.user}</td><td>${h.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="6" style="color:var(--muted)">Sin movimientos para estos filtros.</td></tr>'}
-function clearFilters(){filterEq.value="";filterUser.value="";filterType.value="";renderHistory()}
-function downloadCSV(){const rows=[["Fecha movimiento","Fecha registro","Equipo","Movimiento","Usuario","Observación"],...HISTORY.map(h=>[h.move,h.record,h.eq,h.type,h.user,h.obs])];const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="historial-equipos-csi.csv";a.click();URL.revokeObjectURL(u)}
-renderUsers("");
-reserveDate.addEventListener("change",renderEq);reserveShift.addEventListener("change",renderEq);
-const saved=localStorage.getItem("csi:eq:user");if(saved&&USERS.includes(saved)){state.user=saved;enterApp()}
+
+window.renderHistory=()=>{
+  const e=filterEq.value,u=filterUser.value,t=filterType.value;
+  const rows=HISTORY.filter(h=>(!e||h.eq===e)&&(!u||h.user===u)&&(!t||h.type===t));
+  histBody.innerHTML=rows.map(h=>`<tr><td>${h.move||"—"}</td><td>${h.record||"—"}</td><td><b>${h.eq}</b></td><td>${h.type}</td><td>${h.user}</td><td>${h.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="6" style="color:var(--muted)">Sin movimientos para estos filtros.</td></tr>';
+};
+window.clearFilters=()=>{filterEq.value="";filterUser.value="";filterType.value="";renderHistory()};
+window.downloadCSV=()=>{
+  const rows=[["Fecha movimiento","Fecha registro","Equipo","Movimiento","Usuario","Observación"],...HISTORY.map(h=>[h.move,h.record,h.eq,h.type,h.user,h.obs])];
+  const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(";")).join("\n");
+  const b=new Blob([csv],{type:"text/csv;charset=utf-8"}),u=URL.createObjectURL(b),a=document.createElement("a");
+  a.href=u;a.download="historial-equipos-csi.csv";a.click();URL.revokeObjectURL(u);
+};
+
+async function seedEquipment(){
+  for(const e of EQ_BASE){
+    const ref=doc(DB,"equipment",e.id), snap=await getDoc(ref);
+    if(!snap.exists()) await setDoc(ref,{...e,status:"En depósito",holder:"",holderEmail:"",since:"",sinceISO:""});
+  }
+}
+
+function subscribeData(){
+  onSnapshot(collection(DB,"equipment"),snap=>{
+    const map={}; snap.forEach(d=>map[d.id]=d.data());
+    EQ=EQ_BASE.map(e=>({...e,...(map[e.id]||{status:"En depósito",holder:"",since:""})}));
+    if(!moveCard.hidden) renderEq(); if(!adminView.hidden) renderAdmin();
+  },e=>console.error("equipment",e));
+
+  onSnapshot(query(collection(DB,"movements"),orderBy("recordAt","desc")),snap=>{
+    HISTORY=[]; snap.forEach(d=>HISTORY.push({id:d.id,...d.data()}));
+    if(!adminView.hidden) renderHistory();
+  },e=>console.error("movements",e));
+
+  onSnapshot(collection(DB,"reservations"),snap=>{
+    RESERVATIONS=[];snap.forEach(d=>RESERVATIONS.push({id:d.id,...d.data()}));
+    if(!moveCard.hidden) renderEq(); if(!adminView.hidden) renderAdmin();
+  },e=>console.error("reservations",e));
+}
+
+async function init(){
+  try{
+    await authMod.signInAnonymously(AUTH);
+    await seedEquipment();
+    subscribeData();
+    renderUsers("");
+    loading.hidden=true;
+    const saved=localStorage.getItem("csi:eq:userEmail");
+    const p=saved&&personByEmail(saved);
+    if(p){
+      state.user=p; enterApp();
+    }else picker.hidden=false;
+    state.ready=true;
+  }catch(e){
+    console.error(e);
+    loading.innerHTML='<div class="card"><h2>No se pudo conectar</h2><p>Revisá Firebase Authentication, Firestore y las reglas.</p></div>';
+  }
+}
+
+buscar.addEventListener("input",()=>renderUsers(buscar.value));
+reserveDate.addEventListener("change",renderEq);
+reserveShift.addEventListener("change",renderEq);
+pin1.addEventListener("keydown",e=>{if(e.key==="Enter")submitPin()});
+pin2.addEventListener("keydown",e=>{if(e.key==="Enter")submitPin()});
+
+init();
 </script>
 </body>
 </html>
