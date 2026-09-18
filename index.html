@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de equipos · CSI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --brand:#c8102e; --brand-d:#9e0c24; --ink:#1b2433; --muted:#5b6473; --line:#e4e7ec;
+ --paper:#f5f6f8; --card:#fff; --green:#1f9d4d; --green-bg:#e9f7ee; --red:#b4232c; --red-bg:#fdeaea;
+ --amber:#9a5b00; --amber-bg:#fff4e0; --shadow:0 1px 2px rgba(27,36,51,.06),0 8px 24px rgba(27,36,51,.06);
+ --radius:14px;
+}
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;font-family:"Inter",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px 64px}
+header.site{padding:26px 0 18px;border-bottom:1px solid var(--line)}
+.brandline{display:flex;align-items:center;gap:12px}.brandbar{width:6px;height:36px;background:var(--brand);border-radius:3px}
+.brandname{font-family:"Archivo";font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:1.15rem}
+.brandtag{display:block;font-size:.72rem;letter-spacing:.16em;color:var(--muted);font-weight:600;margin-top:3px}
+h1,h2,h3{font-family:"Archivo"} h1{font-size:clamp(1.7rem,4vw,2.4rem);margin:14px 0 4px}
+.sub{color:var(--muted);max-width:70ch;font-size:.95rem;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.login{max-width:540px;margin:32px auto 0}.login h2{margin:0 0 6px}.login p{color:var(--muted);font-size:.92rem}
+.search,input,textarea,select{width:100%;padding:11px 13px;font:inherit;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.search:focus,input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(200,16,46,.13)}
+.plist{display:flex;flex-direction:column;gap:8px;max-height:54vh;overflow:auto;margin-top:12px}
+.pbtn{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;text-align:left}
+.pbtn:hover,.pbtn.sel{border-color:var(--brand)} .av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-family:"Archivo";font-weight:700}
+.nm{font-weight:600}
+.pinwrap{position:fixed;inset:0;background:rgba(27,36,51,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+.pincard{width:100%;max-width:360px;background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+.pininput{text-align:center;font-size:1.35rem;letter-spacing:.45em;font-weight:700}
+.btn{font:inherit;font-weight:700;cursor:pointer;border-radius:10px;padding:11px 18px;border:1.5px solid var(--brand-d);background:var(--brand);color:#fff}
+.btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)} .btn.tiny{padding:7px 11px;font-size:.82rem}
+.userbar{margin-top:14px;font-size:.84rem;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}.userbar b{color:var(--ink)}
+.stack{display:flex;flex-direction:column;gap:18px;margin-top:22px}
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.action{padding:20px;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;text-align:left}
+.action strong{font:700 1.1rem "Archivo"}.action:hover{border-color:var(--brand)}.action.ret{background:var(--brand);color:#fff;border-color:var(--brand-d)}
+.equipment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.eq{position:relative;display:grid;grid-template-columns:76px 1fr;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff;cursor:pointer;min-height:112px}
+.eq:hover{border-color:#c8ced8}.eq.sel{border-color:var(--brand);box-shadow:0 0 0 2px rgba(200,16,46,.08);background:#fffafa}
+.eq.unavailable{opacity:.68;background:#f6f7f9;border-color:#d8dde4;cursor:not-allowed}
+.eq.unavailable:hover{border-color:#d8dde4}
+.eq.unavailable .thumb{filter:grayscale(.35)}
+.reserved-note{margin-top:7px;padding:5px 7px;border-radius:8px;background:#fff4e0;color:#8a5b00;font-size:.72rem;font-weight:600;line-height:1.3}
+.thumb{width:76px;height:76px;border-radius:10px;background:#f7f8fa;display:grid;place-items:center;overflow:hidden;border:1px solid #eef0f3}
+.thumb img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}.fallback{font-size:2rem}
+.eqcode{font:700 .96rem "Archivo";margin-bottom:2px}.eqname{font-weight:600;font-size:.88rem}.eqdetail{color:var(--muted);font-size:.75rem;margin-top:2px}
+.badge{position:absolute;top:9px;right:9px;background:var(--ink);color:#fff;border-radius:999px;font:700 .66rem "Archivo";padding:3px 7px}
+.status{display:inline-block;margin-top:7px;padding:4px 8px;border-radius:999px;font-size:.72rem;font-weight:700}.in{background:var(--green-bg);color:#15692f}.out{background:var(--red-bg);color:#9f2028}
+label.fld{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;margin:16px 0 6px}
+textarea{min-height:90px;resize:vertical}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.notice{background:var(--amber-bg);color:var(--amber);border:1px solid #e6c68a;border-radius:11px;padding:12px 14px;margin-top:14px;font-size:.88rem}
+.ok{background:#e9f7ee;color:#15692f;border:1px solid #bfe6cd;border-radius:11px;padding:14px}
+.tabs{display:flex;gap:8px;margin-top:22px}.tab{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer}.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px}.kpi b{display:block;font:700 1.7rem "Archivo"}
+table{width:100%;border-collapse:collapse}th,td{padding:11px 10px;border-bottom:1px solid #edf0f3;text-align:left;font-size:.83rem}th{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.toolbar{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:9px;margin:12px 0}.scroll{overflow:auto}
+footer{margin-top:34px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--line);padding-top:16px}
+@media(max-width:820px){.equipment-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:580px){.equipment-grid{grid-template-columns:1fr}.action-grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.eq{grid-template-columns:68px 1fr}.thumb{width:68px;height:68px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+ <div class="brandline"><span class="brandbar"></span><span><span class="brandname">CSI</span><span class="brandtag">GTLyT</span></span></div>
+ <h1>Control de equipos</h1>
+ <p class="sub">Registrá el retiro y la devolución de los equipos de topografía. El historial queda asociado a tu usuario.</p>
+ <div id="userbar" class="userbar" hidden>Entraste como <b id="who"></b><button class="btn ghost tiny" onclick="logout()">No soy yo / Salir</button></div>
+</header>
+
+<section id="picker" class="login">
+ <div class="card">
+  <h2>Elegí tu nombre</h2>
+  <p>Tocá tu nombre para entrar. La primera vez creás tu PIN de 4 dígitos.</p>
+  <input id="buscar" class="search" placeholder="Buscar tu nombre…" oninput="renderUsers(this.value)">
+  <div id="plist" class="plist"></div>
+ </div>
+</section>
+
+<section id="app" class="stack" hidden>
+ <div class="card" id="actionCard">
+  <h2 style="margin-top:0">¿Qué querés registrar?</h2>
+  <div class="action-grid">
+   <button class="action ret" onclick="choose('Retiro')"><strong>Retirar equipos</strong><br><span style="opacity:.85">Registrar lo que te llevás</span></button>
+   <button class="action" onclick="choose('Devolución')"><strong>Devolver equipos</strong><br><span style="color:var(--muted)">Registrar lo que devolvés</span></button>
+   <button class="action" onclick="choose('Reserva')"><strong>Reservar equipos</strong><br><span style="color:var(--muted)">Agendar un uso futuro</span></button>
+  </div>
+ </div>
+
+ <div class="card" id="moveCard" hidden>
+  <h2 id="moveTitle" style="margin-top:0"></h2>
+  <p class="sub">Podés marcar varios equipos en el mismo movimiento.</p>
+  <label class="fld">Seleccioná los equipos</label>
+  <div id="eqgrid" class="equipment-grid"></div>
+  <div id="singleDateWrap">
+   <label class="fld" id="dateLbl">Fecha y hora</label>
+   <input id="dateField" type="datetime-local">
+   <div id="dateHelp" style="font-size:.78rem;color:var(--muted);margin-top:5px"></div>
+  </div>
+  <div id="reserveDateWrap" hidden>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div>
+      <label class="fld">Fecha</label>
+      <input id="reserveDate" type="date">
+    </div>
+    <div>
+      <label class="fld">Turno</label>
+      <select id="reserveShift">
+        <option value="AM">Mañana · 08:00–12:00</option>
+        <option value="PM">Tarde · 13:00–17:00</option>
+        <option value="FULL">Jornada completa</option>
+      </select>
+    </div>
+   </div>
+   <div style="font-size:.78rem;color:var(--muted);margin-top:5px">La reserva no cambia el estado físico del equipo.</div>
+  </div>
+  <label class="fld">Observaciones (opcional)</label>
+  <textarea id="obs" placeholder="Ej. batería descargada, accesorio faltante, novedad del equipo…"></textarea>
+  <div id="conflict" class="notice" hidden></div>
+  <div class="actions"><button class="btn" onclick="confirmMove()">Aceptar</button><button class="btn ghost" onclick="cancelMove()">Volver</button></div>
+ </div>
+
+ <div class="card" id="successCard" hidden><div class="ok"><h3 style="margin:0 0 5px">Movimiento registrado</h3><div id="successText"></div></div><div class="actions"><button class="btn" onclick="newMove()">Registrar otro</button></div></div>
+
+ <div class="tabs"><button class="tab on" id="opTab" onclick="showView('operator')">Operador</button><button class="tab" id="adTab" onclick="showView('admin')">Admin</button></div>
+
+ <div id="adminView" hidden>
+  <div class="kpis" style="margin-bottom:18px">
+   <div class="kpi"><span class="sub">Equipos totales</span><b id="kt"></b></div>
+   <div class="kpi"><span class="sub">En depósito</span><b id="ki"></b></div>
+   <div class="kpi"><span class="sub">Retirados</span><b id="ko"></b></div>
+  </div>
+  <div class="card" style="margin-bottom:18px">
+   <h2 style="margin-top:0">Estado actual</h2>
+   <div class="scroll"><table><thead><tr><th>Equipo</th><th>Modelo</th><th>Estado</th><th>Quién lo tiene</th><th>Desde</th></tr></thead><tbody id="statusBody"></tbody></table></div>
+  </div>
+  <div class="card" style="margin-bottom:18px">
+   <h2 style="margin-top:0">Próximas reservas</h2>
+   <div class="scroll"><table><thead><tr><th>Equipo</th><th>Fecha</th><th>Turno</th><th>Reservado por</th><th>Observación</th></tr></thead><tbody id="resBody"></tbody></table></div>
+  </div>
+  <div class="card">
+   <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">Historial</h2><button class="btn tiny" onclick="downloadCSV()">Descargar historial</button></div>
+   <div class="toolbar">
+    <select id="filterEq" onchange="renderHistory()"></select>
+    <select id="filterUser" onchange="renderHistory()"></select>
+    <select id="filterType" onchange="renderHistory()"><option value="">Todos los movimientos</option><option>Retiro</option><option>Devolución</option><option>Devolución inferida</option></select>
+    <button class="btn ghost tiny" onclick="clearFilters()">Limpiar</button>
+   </div>
+   <div class="scroll"><table><thead><tr><th>Fecha movimiento</th><th>Fecha registro</th><th>Equipo</th><th>Movimiento</th><th>Usuario</th><th>Observación</th></tr></thead><tbody id="histBody"></tbody></table></div>
+  </div>
+ </div>
+</section>
+
+<footer>Ingreso por lista de nombres · Movimientos sincronizados en tiempo real en la versión publicada · Hecho para CSI.</footer>
+</div>
+
+<div id="pinmodal" class="pinwrap" hidden>
+ <div class="pincard">
+  <h3 id="pinTitle" style="margin:0 0 6px"></h3>
+  <p id="pinText" class="sub" style="margin-bottom:14px"></p>
+  <input id="pin1" class="pininput" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+  <input id="pin2" class="pininput" type="password" inputmode="numeric" maxlength="4" placeholder="Repetí el PIN" style="margin-top:8px" hidden>
+  <div id="pinMsg" style="color:#9f2028;font-size:.82rem;min-height:20px;margin-top:5px"></div>
+  <div class="actions"><button class="btn ghost" onclick="closePin()">Volver</button><button class="btn" onclick="submitPin()">Entrar</button></div>
+ </div>
+</div>
+
+<script>
+const USERS = ["Agustín Cortondo", "Agustín Méndez", "Agustina Acosta", "Álvaro Izquierdo", "Ana Paula Sáez", "Antonella Lobera", "Antonio Martyniuk", "Aracely Gaona", "Camila Fortunato", "Catalina Peláez", "Cecilia Volpe", "Emilia Varela", "Emiliano Gómez", "Enzo Piovano", "Estefanía Martínez", "Federico Barrios", "Fernando Díaz", "Florencia Fros", "Francisco Calvo", "Franco Piñeyrúa", "Ismael Villanueva", "José Pedro Vidal", "Juan Marote", "Julieta Rohner", "Lucas Padilla Segui", "Marcelo Rivero", "Marco Pérez", "María Frachia", "María Mesa", "Mariano Artegoytia", "Martín Sanguinetti", "Matías Bardesio", "Matías Castro", "Matías Gutiérrez", "Mauro Bruzzone", "Maximiliano Rojas Mirazón", "Micaela Perdomo", "Paula Bonjour", "Pilar Betancurt", "Pilar Luján", "Ramiro Alonso", "Rocío Rojas Romero", "Santiago Noboa", "Silvio Martino", "Valentín González", "Valentina Kautz", "Valentina Oliva", "Valentina Varela"];
+const EQ = [{"id": "GPS-01", "type": "GPS", "name": "Trimble R780", "detail": "Base + móvil + TDC600 + accesorios", "img": "https://images.ctfassets.net/1nvkn1423yot/4B0haF62yjuPnW01iq5ijp/02f9207cf2f09f5095ed92d7f08d2431/geo-product-r780-2le-pim-image-800x960.png?fm=webp&q=85", "icon": "📡"}, {"id": "GPS-02", "type": "GPS", "name": "Trimble R780", "detail": "Base + móvil + TDC600 + accesorios", "img": "https://images.ctfassets.net/1nvkn1423yot/4B0haF62yjuPnW01iq5ijp/02f9207cf2f09f5095ed92d7f08d2431/geo-product-r780-2le-pim-image-800x960.png?fm=webp&q=85", "icon": "📡"}, {"id": "DRON-01", "type": "Drone", "name": "DJI Matrice 400", "detail": "", "img": "https://www.dronesdirect.co.uk/Images/CP.EN.00000685.01_2_LargeThumbnail.png?height=360&v=15&width=360", "icon": "✈️"}, {"id": "DRON-02", "type": "Drone", "name": "DJI Matrice 350 RTK", "detail": "Payload P1", "badge": "P1", "img": "https://www.dronesdirect.co.uk/Images/BUNCP.EN.00000468.0192851_1_LargeThumbnail.png?height=360&v=1&width=360", "icon": "✈️"}, {"id": "DRON-03", "type": "Drone", "name": "DJI Matrice 350 RTK", "detail": "Payload L2", "badge": "L2", "img": "https://www.dronesdirect.co.uk/Images/BUNCP.EN.00000468.0192851_1_LargeThumbnail.png?height=360&v=1&width=360", "icon": "✈️"}, {"id": "DRON-04", "type": "Drone", "name": "DJI Mavic 3 Enterprise", "detail": "RC", "img": "https://www.dronesdirect.co.uk/Images/CP.EN.00000411.01_1_LargeThumbnail.jpg?height=360&width=360", "icon": "✈️"}, {"id": "EST-01", "type": "Estación Total", "name": "Leica TS16", "detail": "", "img": "https://cdn11.bigcommerce.com/s-ew2v2d3jn1/images/stencil/1280x1280/products/793/4513/1659454761.1280.1280__84568.1724344361.jpg?c=1", "icon": "📐"}, {"id": "ESC-01", "type": "Escáner", "name": "Leica RTC360", "detail": "", "img": "https://survey-tech.co.uk/cdn/shop/products/leica-rtc360-3d-laser-scanner-03_1024x1024%402x.jpg?v=1651153057", "icon": "◉"}, {"id": "ROB-01", "type": "Robot", "name": "HP SitePrint", "detail": "", "img": "https://spatialtechnologies.ca/cdn/shop/products/hp-siteprint-construction-layout-robot_1024x1024.jpg", "icon": "🤖"}, {"id": "ECO-01", "type": "Ecosonda", "name": "Ecosonda", "detail": "", "img": "", "icon": "〰️"}].map((e,i)=>({...e,status:i===6?"Retirado":"En depósito",holder:i===6?"Carlos Almirón":"",since:i===6?"17/09/2026 08:05":""}));
+let HISTORY=[{move:"17/09/2026 08:05",record:"17/09/2026 08:05",eq:"EST-01",type:"Retiro",user:"Carlos Almirón",obs:""}];
+let RESERVATIONS=[
+ {eq:"ESC-01",date:"19/09/2026",dateISO:"2026-09-19",shift:"AM",shiftLabel:"Mañana · 08:00–12:00",user:"Martín Sanguinetti",obs:"Relevamiento de prueba"}
+];
+let state={user:"",pendingUser:"",action:"",selected:new Set()};
+
+const initials=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
+function renderUsers(f=""){ const q=f.toLowerCase().trim(); const list=USERS.filter(n=>!q||n.toLowerCase().includes(q)); plist.innerHTML=list.map(n=>`<button class="pbtn" onclick='pickUser(${JSON.stringify(n)})'><span class="av">${initials(n)}</span><span class="nm">${n}</span></button>`).join("")}
+function pickUser(n){state.pendingUser=n; const key="csi:eq:pin:"+n; const exists=localStorage.getItem(key); pinTitle.textContent="Hola, "+n.split(" ")[0]; pinText.textContent=exists?"Ingresá tu PIN de 4 dígitos para entrar.":"Creá tu PIN de 4 dígitos. Te lo vamos a pedir la próxima vez."; pin2.hidden=!!exists; pin1.value="";pin2.value="";pinMsg.textContent="";pinmodal.hidden=false;setTimeout(()=>pin1.focus(),50)}
+function closePin(){pinmodal.hidden=true}
+function submitPin(){ const p=pin1.value.trim(); if(!/^\d{4}$/.test(p)){pinMsg.textContent="El PIN son 4 números.";return} const k="csi:eq:pin:"+state.pendingUser; const old=localStorage.getItem(k); if(old&&old!==p){pinMsg.textContent="PIN incorrecto.";return} if(!old){if(pin2.value.trim()!==p){pinMsg.textContent="Los dos PIN no coinciden.";return}localStorage.setItem(k,p)} state.user=state.pendingUser;localStorage.setItem("csi:eq:user",state.user);closePin();enterApp()}
+function enterApp(){picker.hidden=true;app.hidden=false;userbar.hidden=false;who.textContent=state.user;newMove();renderAdmin()}
+function logout(){localStorage.removeItem("csi:eq:user");state.user="";app.hidden=true;userbar.hidden=true;picker.hidden=false;renderUsers("")}
+function choose(a){
+ state.action=a;state.selected=new Set();actionCard.hidden=true;successCard.hidden=true;moveCard.hidden=false;
+ moveTitle.textContent=a==="Reserva"?"Reservar equipos":a==="Retiro"?"Retirar equipos":"Devolver equipos";
+ const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());const now=d.toISOString().slice(0,16);
+ singleDateWrap.hidden=a==="Reserva";reserveDateWrap.hidden=a!=="Reserva";
+ if(a==="Reserva"){
+   const today=now.slice(0,10);
+   reserveDate.value=today;
+   reserveShift.value="AM";
+ }else{
+   dateLbl.textContent=a==="Retiro"?"Fecha y hora":"Fecha de devolución";
+   dateField.value=now;dateField.disabled=a==="Retiro";
+   dateHelp.textContent=a==="Retiro"?"Se registra automáticamente.":"Podés colocar una fecha anterior si la devolución se registró después.";
+ }
+ renderEq()
+}
+function imgMarkup(e){ if(!e.img) return `<span class="fallback">${e.icon}</span>`; return `<img src="${e.img}" alt="${e.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fallback" style="display:none">${e.icon}</span>`}
+
+function shiftsConflict(a,b){
+  if(a==="FULL" || b==="FULL") return true;
+  return a===b;
+}
+
+function conflictingReservations(eqId){
+  if(state.action!=="Reserva" || !reserveDate.value || !reserveShift.value) return [];
+  return RESERVATIONS.filter(r =>
+    r.eq===eqId &&
+    r.dateISO===reserveDate.value &&
+    shiftsConflict(r.shift,reserveShift.value)
+  );
+}
+
+function nextReservation(eqId){
+  return RESERVATIONS
+    .filter(r=>r.eq===eqId)
+    .slice()
+    .sort((a,b)=>a.dateISO.localeCompare(b.dateISO))[0];
+}
+
+function renderEq(){
+  if(state.action==="Reserva"){
+    [...state.selected].forEach(id=>{
+      if(conflictingReservations(id).length) state.selected.delete(id);
+    });
+  }
+
+  eqgrid.innerHTML=EQ.map(e=>{
+    const next=nextReservation(e.id);
+    const conflicts=conflictingReservations(e.id);
+    const unavailable=conflicts.length>0;
+    const conflict=conflicts[0];
+
+    return `<div class="eq ${state.selected.has(e.id)?"sel":""} ${unavailable?"unavailable":""}"
+                 onclick="toggleEq('${e.id}')">
+      ${e.badge?`<span class="badge">${e.badge}</span>`:""}
+      <div class="thumb">${imgMarkup(e)}</div>
+      <div>
+        <div class="eqcode">${e.id}</div>
+        <div class="eqname">${e.name}</div>
+        ${e.detail?`<div class="eqdetail">${e.detail}</div>`:""}
+        <span class="status ${e.status==="En depósito"?"in":"out"}">${e.status}</span>
+        ${unavailable
+          ? `<div class="reserved-note">No disponible · ${conflict.date}<br>${conflict.shiftLabel}<br>${conflict.user}</div>`
+          : (next ? `<div class="eqdetail" style="margin-top:6px">📅 Próx.: ${next.date} · ${next.shiftLabel} · ${next.user}</div>`:"")}
+      </div>
+    </div>`
+  }).join("");
+
+  updateConflict();
+}
+
+function toggleEq(id){
+  if(state.action==="Reserva"){
+    const conflicts=conflictingReservations(id);
+    if(conflicts.length){
+      const r=conflicts[0];
+      conflict.hidden=false;
+      conflict.innerHTML=`<b>${id} no está disponible.</b> Ya está reservado por ${r.user} el ${r.date} · ${r.shiftLabel}.`;
+      return;
+    }
+  }
+  state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+  renderEq();
+}
+
+function updateConflict(){
+  const bad=EQ.filter(e=>state.selected.has(e.id)&&state.action==="Retiro"&&e.status==="Retirado"&&e.holder!==state.user);
+
+  if(bad.length){
+    conflict.hidden=false;
+    conflict.innerHTML=`<b>Atención:</b> ${bad.map(e=>`${e.id} figura retirado por ${e.holder}`).join(", ")}. Si confirmás, se registrará una devolución inferida antes del nuevo retiro.`;
+    return;
+  }
+
+  if(state.action==="Reserva"){
+    const selectedConflicts=[...state.selected].flatMap(id=>conflictingReservations(id));
+    if(selectedConflicts.length){
+      conflict.hidden=false;
+      conflict.innerHTML=`<b>Reserva no disponible:</b> ${selectedConflicts.map(r=>`${r.eq} ya está reservado por ${r.user} el ${r.date} · ${r.shiftLabel}`).join("<br>")}.`;
+      return;
+    }
+  }
+
+  conflict.hidden=true;
+  conflict.innerHTML="";
+}
+
+function fmtDay(v){
+  if(!v) return "";
+  const [y,m,d]=v.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function fmt(v){const d=new Date(v);return isNaN(d)?v:d.toLocaleString("es-UY",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+function nowTxt(){return new Date().toLocaleString("es-UY",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+function confirmMove(){
+ if(!state.selected.size){alert("Seleccioná al menos un equipo.");return}
+ const ob=obs.value.trim();
+ if(state.action==="Reserva"){
+   if(!reserveDate.value || !reserveShift.value){alert("Indicá la fecha y el turno.");return}
+   const collisions=RESERVATIONS.filter(r=>
+     state.selected.has(r.eq) &&
+     r.dateISO===reserveDate.value &&
+     shiftsConflict(r.shift,reserveShift.value)
+   );
+   if(collisions.length){
+     state.selected = new Set([...state.selected].filter(id=>!collisions.some(r=>r.eq===id)));
+     renderEq();
+     const r=collisions[0];
+     alert(`${r.eq} ya está reservado por ${r.user} el ${r.date} · ${r.shiftLabel}.`);
+     return;
+   }
+
+   const shiftLabels={
+     AM:"Mañana · 08:00–12:00",
+     PM:"Tarde · 13:00–17:00",
+     FULL:"Jornada completa"
+   };
+
+   [...state.selected].forEach(id=>RESERVATIONS.push({
+      eq:id,
+      date:fmtDay(reserveDate.value),
+      dateISO:reserveDate.value,
+      shift:reserveShift.value,
+      shiftLabel:shiftLabels[reserveShift.value],
+      user:state.user,
+      obs:ob
+   }));
+
+   moveCard.hidden=true;successCard.hidden=false;
+   successText.textContent=`Reserva registrada para ${[...state.selected].join(", ")} · ${fmtDay(reserveDate.value)} · ${shiftLabels[reserveShift.value]}.`;
+ }else{
+   const mv=fmt(dateField.value),rec=nowTxt();
+   [...state.selected].forEach(id=>{
+     const e=EQ.find(x=>x.id===id);
+     if(state.action==="Retiro"&&e.status==="Retirado"&&e.holder!==state.user){
+       HISTORY.unshift({move:rec,record:rec,eq:id,type:"Devolución inferida",user:e.holder,obs:"Devolución inferida por nuevo retiro. Estado no informado."})
+     }
+     HISTORY.unshift({move:mv,record:rec,eq:id,type:state.action,user:state.user,obs:ob});
+     if(state.action==="Retiro"){
+       e.status="Retirado";e.holder=state.user;e.since=mv;
+     }else{e.status="En depósito";e.holder="";e.since=""}
+   });
+   moveCard.hidden=true;successCard.hidden=false;successText.textContent=`${state.action} registrado para ${[...state.selected].join(", ")}.`;
+ }
+ obs.value="";renderAdmin()
+}
+function cancelMove(){moveCard.hidden=true;actionCard.hidden=false}
+function newMove(){moveCard.hidden=true;successCard.hidden=true;actionCard.hidden=false;showView("operator")}
+function showView(v){const admin=v==="admin";adminView.hidden=!admin;actionCard.hidden=admin?true:false;moveCard.hidden=true;successCard.hidden=true;opTab.classList.toggle("on",!admin);adTab.classList.toggle("on",admin);if(admin)renderAdmin()}
+function renderAdmin(){
+ kt.textContent=EQ.length;ki.textContent=EQ.filter(e=>e.status==="En depósito").length;ko.textContent=EQ.filter(e=>e.status==="Retirado").length;
+ statusBody.innerHTML=EQ.map(e=>`<tr><td><b>${e.id}</b></td><td>${e.name}${e.detail?" · "+e.detail:""}</td><td><span class="status ${e.status==="En depósito"?"in":"out"}">${e.status}</span></td><td>${e.holder||"—"}</td><td>${e.since||"—"}</td></tr>`).join("");
+ const upcoming=RESERVATIONS.slice().sort((a,b)=>a.dateISO.localeCompare(b.dateISO));
+ resBody.innerHTML=upcoming.map(r=>`<tr><td><b>${r.eq}</b></td><td>${r.date}</td><td>${r.shiftLabel}</td><td>${r.user}</td><td>${r.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="5" style="color:var(--muted)">No hay próximas reservas.</td></tr>';
+ filterEq.innerHTML='<option value="">Todos los equipos</option>'+EQ.map(e=>`<option>${e.id}</option>`).join("");
+ filterUser.innerHTML='<option value="">Todos los usuarios</option>'+USERS.map(u=>`<option>${u}</option>`).join("");
+ renderHistory()
+}
+function renderHistory(){const e=filterEq.value,u=filterUser.value,t=filterType.value;const rows=HISTORY.filter(h=>(!e||h.eq===e)&&(!u||h.user===u)&&(!t||h.type===t));histBody.innerHTML=rows.map(h=>`<tr><td>${h.move}</td><td>${h.record}</td><td><b>${h.eq}</b></td><td>${h.type}</td><td>${h.user}</td><td>${h.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="6" style="color:var(--muted)">Sin movimientos para estos filtros.</td></tr>'}
+function clearFilters(){filterEq.value="";filterUser.value="";filterType.value="";renderHistory()}
+function downloadCSV(){const rows=[["Fecha movimiento","Fecha registro","Equipo","Movimiento","Usuario","Observación"],...HISTORY.map(h=>[h.move,h.record,h.eq,h.type,h.user,h.obs])];const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v||"").replaceAll('"','""')}"`).join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="historial-equipos-csi.csv";a.click();URL.revokeObjectURL(u)}
+renderUsers("");
+reserveDate.addEventListener("change",renderEq);reserveShift.addEventListener("change",renderEq);
+const saved=localStorage.getItem("csi:eq:user");if(saved&&USERS.includes(saved)){state.user=saved;enterApp()}
+</script>
+</body>
+</html>
