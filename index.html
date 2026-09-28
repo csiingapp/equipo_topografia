@@ -82,6 +82,16 @@ footer{margin-top:34px;color:var(--muted);font-size:.78rem;border-top:1px solid 
   <p>Tocá tu nombre para entrar. La primera vez creás tu PIN de 4 dígitos.</p>
   <input id="buscar" class="search" placeholder="Buscar tu nombre…" oninput="renderUsers(this.value)">
   <div id="plist" class="plist"></div>
+  <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px">
+   <button id="guestBtn" class="btn ghost" type="button" onclick="toggleGuest()">No estoy en la lista</button>
+   <div id="guestBox" hidden style="margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)">
+    <p style="margin:0 0 10px;font-size:.88rem;color:var(--muted)">Para préstamos a personal de otros departamentos, ingresá nombre y correo.</p>
+    <input id="guestName" class="search" placeholder="Nombre y apellido" autocomplete="name">
+    <input id="guestEmail" class="search" type="email" placeholder="Correo electrónico" autocomplete="email" style="margin-top:8px">
+    <div id="guestMsg" style="color:#9f2028;font-size:.82rem;min-height:20px;margin-top:5px"></div>
+    <button class="btn" type="button" onclick="continueGuest()">Continuar</button>
+   </div>
+  </div>
  </div>
 </section>
 
@@ -159,7 +169,7 @@ footer{margin-top:34px;color:var(--muted);font-size:.78rem;border-top:1px solid 
  </div>
 </section>
 
-<footer>CSI · Equipos Topografía · v10 · Ingreso por lista de nombres · Movimientos sincronizados en tiempo real.</footer>
+<footer>CSI · Equipos Topografía · v11 · Ingreso por lista o usuario externo · Movimientos sincronizados en tiempo real.</footer>
 </div>
 
 <div id="pinmodal" class="pinwrap" hidden>
@@ -210,6 +220,23 @@ const personByName=n=>PERSONAS.find(p=>p.nombre===n);
 const personByEmail=e=>PERSONAS.find(p=>p.email===e);
 const isAdmin=()=>state.user && ADMINS.includes(state.user.email);
 
+window.toggleGuest=()=>{
+  guestBox.hidden=!guestBox.hidden;
+  guestMsg.textContent="";
+  if(!guestBox.hidden) setTimeout(()=>guestName.focus(),50);
+};
+
+window.continueGuest=async()=>{
+  const nombre=guestName.value.trim().replace(/\s+/g," ");
+  const email=guestEmail.value.trim().toLowerCase();
+  guestMsg.textContent="";
+  if(nombre.length<3){guestMsg.textContent="Ingresá nombre y apellido.";return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){guestMsg.textContent="Ingresá un correo válido.";return;}
+  const listed=personByEmail(email);
+  if(listed){await pickUser(listed.email);return;}
+  await pickExternalUser({nombre,email,externo:true});
+};
+
 function renderUsers(f=""){
   const q=f.toLowerCase().trim();
   const list=PERSONAS.filter(p=>!q||p.nombre.toLowerCase().includes(q)||p.email.toLowerCase().includes(q));
@@ -221,6 +248,24 @@ async function hashPin(email,pin){
   const raw="csi-equipos-2026::"+email.toLowerCase()+"::"+pin;
   const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+async function pickExternalUser(persona){
+  state.pendingUser=persona;
+  pinMsg.textContent=""; pin1.value=""; pin2.value="";
+  let snap;
+  try{ snap=await getDoc(doc(DB,"usuarios",persona.email)); }
+  catch(e){ console.error(e); alert("No se pudo verificar el usuario. Revisá la conexión."); return; }
+  const exists=snap.exists();
+  if(exists){
+    const data=snap.data()||{};
+    state.pendingUser={nombre:data.nombre||persona.nombre,email:persona.email,externo:data.externo===true};
+  }
+  pinTitle.textContent="Hola, "+state.pendingUser.nombre.split(" ")[0];
+  pinText.textContent=exists?"Ingresá tu PIN de 4 dígitos para entrar.":"Creá tu PIN de 4 dígitos. Te lo vamos a pedir la próxima vez.";
+  pin2.hidden=exists;
+  pinmodal.hidden=false;
+  setTimeout(()=>pin1.focus(),50);
 }
 
 async function pickUser(email){
@@ -249,7 +294,7 @@ window.submitPin=async()=>{
   const hash=await hashPin(persona.email,p);
   if(!snap.exists()){
     if(pin2.value.trim()!==p){pinMsg.textContent="Los dos PIN no coinciden.";return}
-    await setDoc(ref,{nombre:persona.nombre,email:persona.email,pinHash:hash,creado:Date.now()});
+    await setDoc(ref,{nombre:persona.nombre,email:persona.email,pinHash:hash,externo:persona.externo===true,creado:Date.now()});
   } else if((snap.data()||{}).pinHash!==hash){
     pinMsg.textContent="PIN incorrecto.";pin1.value="";pin1.focus();return;
   }
@@ -270,6 +315,7 @@ function enterApp(){
 window.logout=()=>{
   localStorage.removeItem("csi:eq:userEmail");
   state.user=null; app.hidden=true; userbar.hidden=true; adTab.hidden=true; picker.hidden=false; renderUsers("");
+  guestBox.hidden=true; guestName.value=""; guestEmail.value=""; guestMsg.textContent="";
 };
 
 window.choose=(a)=>{
@@ -439,7 +485,8 @@ function renderAdmin(){
   const upcoming=RESERVATIONS.filter(r=>r.dateISO>=today).slice().sort((a,b)=>a.dateISO.localeCompare(b.dateISO));
   resBody.innerHTML=upcoming.map(r=>`<tr><td><b>${r.eq}</b></td><td>${r.date}</td><td>${r.shiftLabel}</td><td>${r.user}</td><td>${r.obs||"—"}</td></tr>`).join("")||'<tr><td colspan="5" style="color:var(--muted)">No hay próximas reservas.</td></tr>';
   filterEq.innerHTML='<option value="">Todos los equipos</option>'+EQ.map(e=>`<option>${e.id}</option>`).join("");
-  filterUser.innerHTML='<option value="">Todos los usuarios</option>'+PERSONAS.map(p=>`<option>${p.nombre}</option>`).join("");
+  const userNames=[...new Set([...PERSONAS.map(p=>p.nombre),...HISTORY.map(h=>h.user).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"es"));
+  filterUser.innerHTML='<option value="">Todos los usuarios</option>'+userNames.map(n=>`<option>${n}</option>`).join("");
   renderHistory();
 }
 
@@ -500,7 +547,16 @@ async function init(){
     renderUsers("");
     loading.hidden=true;
     const saved=localStorage.getItem("csi:eq:userEmail");
-    const p=saved&&personByEmail(saved);
+    let p=saved&&personByEmail(saved);
+    if(saved&&!p){
+      try{
+        const us=await getDoc(doc(DB,"usuarios",saved));
+        if(us.exists()){
+          const d=us.data()||{};
+          p={nombre:d.nombre||saved,email:d.email||saved,externo:d.externo===true};
+        }
+      }catch(e){console.error("saved user",e)}
+    }
     if(p){
       state.user=p; enterApp();
     }else picker.hidden=false;
